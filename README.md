@@ -11,7 +11,7 @@
 - Скачайте код
 - Установите зависимости командой  
 ```pip install -r requirements.txt```
-- Скачайте [архив с вопросами](https://dvmn.org/media/modules_dist/quiz-questions.zip) и сохраните .txt файлы в папке `questions` рядом с файлами `tg_bot.py` и `vk_bot.py`.
+- Скачайте [архив с вопросами](https://dvmn.org/media/modules_dist/quiz-questions.zip) и сохраните .txt файлы в папке `questions` рядом с файлами `tg_bot.py` и `vk_bot.py`. (В репозитории уже добавлены три файла в качестве примера)
 - Запустите бот в Телеграмме командой  
 ```python3 tg_bot.py```
 - Запустите бот в Вконтакте командой  
