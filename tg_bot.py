@@ -1,16 +1,19 @@
 import logging
 import os
-import telegram
 import random
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, RegexHandler
-from telegram import ReplyKeyboardMarkup
-from dotenv import load_dotenv
 from enum import IntEnum
 
-from bot_functions import get_questions_and_answers, get_redis_db, TelegramLogsHandler
+import telegram
+from dotenv import load_dotenv
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import (CommandHandler, ConversationHandler, Filters,
+                          MessageHandler, RegexHandler, Updater)
+
+from bot_functions import (TelegramLogsHandler, get_questions_and_answers,
+                           get_redis_db)
 
 logger = logging.getLogger('Logger')
+
 
 class BotState(IntEnum):
     BUTTON_CHOICE, QUESTION, ANSWER = range(3)
@@ -64,15 +67,20 @@ def handle_response_attempt(bot, update):
 
     if update.message.text in response:
         text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
+        reply_markup = get_custom_key_board()
+        bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_markup=reply_markup)
+        return BotState.BUTTON_CHOICE
     else:
         text = 'Неправильно… Попробуешь ещё раз?'
-
-    reply_markup = get_custom_key_board()
-    bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        reply_markup=reply_markup)
-    return BotState.BUTTON_CHOICE
+        reply_markup = get_custom_key_board()
+        bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_markup=reply_markup)
+        return BotState.QUESTION
 
 
 def done(bot, update):

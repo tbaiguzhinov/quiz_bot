@@ -7,8 +7,11 @@
 - Скачайте код
 - Установите зависимости командой  
 ```pip install -r requirements.txt```
-- Запустите сервер командой  
-```python3 main.py```
+- Скачайте [архив с вопросами](https://dvmn.org/media/modules_dist/quiz-questions.zip) и сохраните .txt файлы в папке `questions` рядом с файлами `tg_bot.py` и `vk_bot.py`.
+- Запустите бот в Телеграмме командой  
+```python3 tg_bot.py```
+- Запустите бот в Вконтакте командой  
+```python3 vk_bot.py```
 
 ## Переменные окружения
 
@@ -20,6 +23,7 @@
 * `REDIS_END_POINT` - ссылка на базу данных Redis.
 * `REDIS_PORT` - порт базы данных Redis.
 * `REDIS_PASSWORD` - пароль для входа в базу данных Redis.
+* `VK_API_KEY` - ключ API для группы в ВК.
 
 ## Цели проекта
 
