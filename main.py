@@ -4,12 +4,17 @@ import telegram
 import random
 import redis
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, RegexHandler
 from telegram import ReplyKeyboardMarkup
 from dotenv import load_dotenv
+from enum import IntEnum
 
 
 logger = logging.getLogger('Logger')
+
+
+class BotState(IntEnum):
+    BUTTON_CHOICE, QUESTION, ANSWER = range(3)
 
 
 class TelegramLogsHandler(logging.Handler):
@@ -50,39 +55,52 @@ def start(bot, update):
         ['Новый вопрос', 'Сдаться'],
         ['Мой счет']]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
-    update.message.reply_text('Привет! Я бот для викторин!', reply_markup=reply_markup)
+    update.message.reply_text(
+        'Привет! Я бот для викторин!', reply_markup=reply_markup)
+    return BotState.BUTTON_CHOICE
 
 
-def echo(bot, update):
-    if update.message.text == "Новый вопрос":
-        question = random.choice(list(questions_and_answers.keys()))
-        r.set(update.effective_chat.id, question)
-        custom_keyboard = [
-            ['Новый вопрос', 'Сдаться'],
-            ['Мой счет']]
-        reply_markup = ReplyKeyboardMarkup(custom_keyboard)
-        bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=question,
-            reply_markup=reply_markup)
-        
+def question(bot, update):
+    question = random.choice(list(questions_and_answers.keys()))
+    r.set(update.effective_chat.id, question)
+    custom_keyboard = [
+        ['Новый вопрос', 'Сдаться'],
+        ['Мой счет']]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard)
+    bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=question,
+        reply_markup=reply_markup)
+    return BotState.QUESTION
+
+
+def response(bot, update):
+    question = r.get(update.effective_chat.id).decode()
+    response = questions_and_answers[question]
+
+    if update.message.text in response:
+        text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
     else:
-        question = r.get(update.effective_chat.id).decode()
-        response = questions_and_answers[question]
+        text = 'Неправильно… Попробуешь ещё раз?'
 
-        if update.message.text in response:
-            text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
-        else:
-            text = 'Неправильно… Попробуешь ещё раз?'
+    custom_keyboard = [
+        ['Новый вопрос', 'Сдаться'],
+        ['Мой счет']]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard)
+    bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup=reply_markup)
+    return BotState.BUTTON_CHOICE
 
-        custom_keyboard = [
-            ['Новый вопрос', 'Сдаться'],
-            ['Мой счет']]
-        reply_markup = ReplyKeyboardMarkup(custom_keyboard)
-        bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=text,
-            reply_markup=reply_markup)
+
+def done(bot, update):
+    update.message.reply_text("Thank you!")
+    return ConversationHandler.END
+
+
+def error(bot, update, error):
+    logger.warning(f'Error encountered: {error}')
 
 
 def main():
@@ -99,8 +117,17 @@ def main():
 
     dp = updater.dispatcher
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text, echo))
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            BotState.BUTTON_CHOICE: [RegexHandler('^Новый вопрос$', question)],
+            BotState.QUESTION: [MessageHandler(Filters.text, response)],
+        },
+        fallbacks=[CommandHandler('cancel', done)]
+    )
+
+    dp.add_handler(conv_handler)
+    dp.add_error_handler(error)
 
     updater.start_polling()
     updater.idle()
