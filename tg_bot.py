@@ -5,9 +5,9 @@ from enum import IntEnum
 
 import telegram
 from dotenv import load_dotenv
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import (CommandHandler, ConversationHandler, Filters,
-                          MessageHandler, RegexHandler, Updater)
+                          MessageHandler, Updater, CallbackContext)
 
 from bot_functions import (TelegramLogsHandler, get_questions_and_answers,
                            get_redis_db)
@@ -26,49 +26,52 @@ def get_custom_key_board():
     return ReplyKeyboardMarkup(custom_keyboard)
 
 
-def start(bot, update):
+def start(update: Update, context: CallbackContext):
     reply_markup = get_custom_key_board()
-    update.message.reply_text(
-        'Привет! Я бот для викторин!', reply_markup=reply_markup)
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='Привет! Я бот для викторин!',
+        reply_markup=reply_markup
+    )
     return BotState.BUTTON_CHOICE
 
 
-def handle_question_request(bot, update):
+def handle_question_request(update: Update, context: CallbackContext):
     question = random.choice(list(questions_and_answers.keys()))
     r.set(update.effective_chat.id, question)
     reply_markup = get_custom_key_board()
-    bot.send_message(
+    context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=question,
         reply_markup=reply_markup)
     return BotState.QUESTION
 
 
-def handle_give_up(bot, update):
+def handle_give_up(update: Update, context: CallbackContext):
     question = r.get(update.effective_chat.id).decode()
     response = questions_and_answers[question]
-    bot.send_message(
+    context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=response,
     )
     question = random.choice(list(questions_and_answers.keys()))
     r.set(update.effective_chat.id, question)
     reply_markup = get_custom_key_board()
-    bot.send_message(
+    context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=question,
         reply_markup=reply_markup)
     return BotState.QUESTION
 
 
-def handle_response_attempt(bot, update):
+def handle_response_attempt(update: Update, context: CallbackContext):
     question = r.get(update.effective_chat.id).decode()
     response = questions_and_answers[question]
 
     if update.message.text in response:
         text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
         reply_markup = get_custom_key_board()
-        bot.send_message(
+        context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
             reply_markup=reply_markup)
@@ -76,20 +79,23 @@ def handle_response_attempt(bot, update):
     else:
         text = 'Неправильно… Попробуешь ещё раз?'
         reply_markup = get_custom_key_board()
-        bot.send_message(
+        context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
             reply_markup=reply_markup)
         return BotState.QUESTION
 
 
-def done(bot, update):
-    update.message.reply_text("Thank you!")
+def done(update: Update, context: CallbackContext):
+    context.bot.send_message("Thank you!")
     return ConversationHandler.END
 
 
-def error(bot, update, error):
-    logger.warning(f'Error encountered: {error}')
+def error(update: Update, context: CallbackContext):
+    logger.warning(
+        f'Update {update} caused error {context.error},\
+traceback {context.error.__traceback__}'
+    )
 
 
 def main():
@@ -111,10 +117,10 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             BotState.BUTTON_CHOICE: [
-                RegexHandler('^Новый вопрос$', handle_question_request),
+                MessageHandler(Filters.regex('^Новый вопрос$'), handle_question_request),
             ],
             BotState.QUESTION: [
-                RegexHandler('^Сдаться$', handle_give_up),
+                MessageHandler(Filters.regex('^Сдаться$'), handle_give_up),
                 MessageHandler(Filters.text, handle_response_attempt)
             ],
         },
