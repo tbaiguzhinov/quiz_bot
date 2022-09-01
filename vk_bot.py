@@ -70,7 +70,7 @@ def handle_response(event, vk_api):
     )
 
 
-def main(r, questions_and_answers):
+def main():
     """Main function."""
     load_dotenv()
     logger_bot_token = os.getenv('LOGGER_BOT_TOKEN')
@@ -97,4 +97,4 @@ def main(r, questions_and_answers):
 if __name__ == "__main__":
     r = get_redis_db()
     questions_and_answers = get_questions_and_answers()
-    main(r, questions_and_answers)
+    main()
