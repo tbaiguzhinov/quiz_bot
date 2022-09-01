@@ -98,7 +98,7 @@ traceback {context.error.__traceback__}'
     )
 
 
-def main():
+def main(r, questions_and_answers):
     """Main function."""
     load_dotenv()
     telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -137,4 +137,4 @@ def main():
 if __name__ == "__main__":
     r = get_redis_db()
     questions_and_answers = get_questions_and_answers()
-    main()
+    main(r, questions_and_answers)
