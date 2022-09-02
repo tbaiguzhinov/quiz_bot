@@ -88,12 +88,12 @@ def handle_response_attempt(update: Update, context: CallbackContext):
         return BotState.QUESTION
 
 
-def done(update: Update, context: CallbackContext):
-    context.bot.send_message("Thank you!")
+def handle_end(update: Update, context: CallbackContext):
+    context.bot.send_message("Викторина завершена, спасибо!")
     return ConversationHandler.END
 
 
-def error(update: Update, context: CallbackContext):
+def handle_error(update: Update, context: CallbackContext):
     logger.warning(
         f'Update {update} caused error {context.error},\
 traceback {context.error.__traceback__}'
@@ -127,11 +127,11 @@ def main():
                 MessageHandler(Filters.text, handle_response_attempt)
             ],
         },
-        fallbacks=[CommandHandler('cancel', done)]
+        fallbacks=[CommandHandler('cancel', handle_end)]
     )
 
     dp.add_handler(conv_handler)
-    dp.add_error_handler(error)
+    dp.add_error_handler(handle_error)
 
     updater.start_polling()
     updater.idle()
