@@ -2,6 +2,7 @@ import logging
 import os
 import random
 from enum import IntEnum
+from functools import partial
 
 import redis
 import telegram
@@ -12,7 +13,7 @@ from telegram.ext import (
     MessageHandler, Updater)
 
 from get_logger import TelegramLogsHandler
-from get_quiz import get_questions_and_answers
+from get_quiz import get_quiz
 
 logger = logging.getLogger('Logger')
 
@@ -38,8 +39,8 @@ def start(update: Update, context: CallbackContext):
     return BotState.BUTTON_CHOICE
 
 
-def handle_question_request(update: Update, context: CallbackContext):
-    question = random.choice(list(questions_and_answers.keys()))
+def handle_question_request(r, quiz, update: Update, context: CallbackContext):
+    question = random.choice(list(quiz.keys()))
     r.set(update.effective_chat.id, question)
     reply_markup = get_custom_key_board()
     context.bot.send_message(
@@ -49,14 +50,14 @@ def handle_question_request(update: Update, context: CallbackContext):
     return BotState.QUESTION
 
 
-def handle_give_up(update: Update, context: CallbackContext):
+def handle_give_up(r, quiz, update: Update, context: CallbackContext):
     question = r.get(update.effective_chat.id).decode()
-    response = questions_and_answers[question]
+    response = quiz[question]
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=response,
     )
-    question = random.choice(list(questions_and_answers.keys()))
+    question = random.choice(list(quiz.keys()))
     r.set(update.effective_chat.id, question)
     reply_markup = get_custom_key_board()
     context.bot.send_message(
@@ -66,9 +67,9 @@ def handle_give_up(update: Update, context: CallbackContext):
     return BotState.QUESTION
 
 
-def handle_response_attempt(update: Update, context: CallbackContext):
+def handle_response_attempt(r, quiz, update: Update, context: CallbackContext):
     question = r.get(update.effective_chat.id).decode()
-    response = questions_and_answers[question]
+    response = quiz[question]
 
     if update.message.text in response:
         text = 'Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»'
@@ -111,20 +112,32 @@ def main():
     logger.addHandler(TelegramLogsHandler(logger_bot, chat_id))
     logger.warning("Телеграм бот запущен")
 
+    r = redis.Redis(
+        host=os.getenv('REDIS_END_POINT'),
+        port=os.getenv('REDIS_PORT'),
+        password=os.getenv('REDIS_PASSWORD'),
+    )
+    folder_name = os.getenv('FOLDER_NAME', default='questions')
+    quiz = get_quiz(folder_name)
+
     updater = Updater(telegram_bot_token)
 
     dp = updater.dispatcher
+
+    handle_question_request_partial = partial(handle_question_request, r, quiz)
+    handle_give_up_partial = partial(handle_give_up, r, quiz)
+    handle_response_attempt_partial = partial(handle_response_attempt, r, quiz)
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
             BotState.BUTTON_CHOICE: [
                 MessageHandler(Filters.regex('^Новый вопрос$'),
-                               handle_question_request),
+                               handle_question_request_partial),
             ],
             BotState.QUESTION: [
-                MessageHandler(Filters.regex('^Сдаться$'), handle_give_up),
-                MessageHandler(Filters.text, handle_response_attempt)
+                MessageHandler(Filters.regex('^Сдаться$'), handle_give_up_partial),
+                MessageHandler(Filters.text, handle_response_attempt_partial)
             ],
         },
         fallbacks=[CommandHandler('cancel', handle_end)]
@@ -138,11 +151,4 @@ def main():
 
 
 if __name__ == "__main__":
-    r = redis.Redis(
-        host=os.getenv('REDIS_END_POINT'),
-        port=os.getenv('REDIS_PORT'),
-        password=os.getenv('REDIS_PASSWORD'),
-    )
-    folder_name = os.getenv('FOLDER_NAME', default='questions')
-    questions_and_answers = get_questions_and_answers(folder_name)
     main()
