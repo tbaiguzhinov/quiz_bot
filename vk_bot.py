@@ -8,8 +8,9 @@ from dotenv import load_dotenv
 from vk_api.keyboard import VkKeyboard
 from vk_api.longpoll import VkEventType, VkLongPoll
 
-from bot_functions import (TelegramLogsHandler, get_questions_and_answers,
-                           get_redis_db)
+from get_quiz import get_questions_and_answers
+from get_logger import TelegramLogsHandler
+from get_redis import get_redis_db
 
 logger = logging.getLogger('Logger')
 

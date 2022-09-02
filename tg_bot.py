@@ -9,8 +9,9 @@ from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import (CommandHandler, ConversationHandler, Filters,
                           MessageHandler, Updater, CallbackContext)
 
-from bot_functions import (TelegramLogsHandler, get_questions_and_answers,
-                           get_redis_db)
+from get_quiz import get_questions_and_answers
+from get_logger import TelegramLogsHandler
+from get_redis import get_redis_db
 
 logger = logging.getLogger('Logger')
 
