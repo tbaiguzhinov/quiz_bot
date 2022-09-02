@@ -3,8 +3,7 @@ from os import listdir
 from os.path import isfile, join
 
 
-def get_questions_and_answers():
-    folder_name = 'questions'
+def get_questions_and_answers(folder_name):
     files = [file for file in listdir(
         folder_name) if isfile(join(folder_name, file))]
     random_file = join(folder_name, random.choice(files))

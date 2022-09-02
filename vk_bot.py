@@ -101,5 +101,6 @@ if __name__ == "__main__":
         port=os.getenv('REDIS_PORT'),
         password=os.getenv('REDIS_PASSWORD'),
     )
-    questions_and_answers = get_questions_and_answers()
+    folder_name = os.getenv('FOLDER_NAME', default='questions')
+    questions_and_answers = get_questions_and_answers(folder_name)
     main()
