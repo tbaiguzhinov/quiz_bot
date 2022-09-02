@@ -3,15 +3,16 @@ import os
 import random
 from enum import IntEnum
 
+import redis
 import telegram
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardMarkup, Update
-from telegram.ext import (CommandHandler, ConversationHandler, Filters,
-                          MessageHandler, Updater, CallbackContext)
+from telegram.ext import (
+    CallbackContext, CommandHandler, ConversationHandler, Filters,
+    MessageHandler, Updater)
 
-from get_quiz import get_questions_and_answers
 from get_logger import TelegramLogsHandler
-from get_redis import get_redis_db
+from get_quiz import get_questions_and_answers
 
 logger = logging.getLogger('Logger')
 
@@ -118,7 +119,8 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             BotState.BUTTON_CHOICE: [
-                MessageHandler(Filters.regex('^Новый вопрос$'), handle_question_request),
+                MessageHandler(Filters.regex('^Новый вопрос$'),
+                               handle_question_request),
             ],
             BotState.QUESTION: [
                 MessageHandler(Filters.regex('^Сдаться$'), handle_give_up),
@@ -136,6 +138,10 @@ def main():
 
 
 if __name__ == "__main__":
-    r = get_redis_db()
+    r = redis.Redis(
+        host=os.getenv('REDIS_END_POINT'),
+        port=os.getenv('REDIS_PORT'),
+        password=os.getenv('REDIS_PASSWORD'),
+    )
     questions_and_answers = get_questions_and_answers()
     main()

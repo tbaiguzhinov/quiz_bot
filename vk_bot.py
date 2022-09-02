@@ -2,15 +2,15 @@ import logging
 import os
 import random
 
+import redis
 import telegram
 import vk_api as vk
 from dotenv import load_dotenv
 from vk_api.keyboard import VkKeyboard
 from vk_api.longpoll import VkEventType, VkLongPoll
 
-from get_quiz import get_questions_and_answers
 from get_logger import TelegramLogsHandler
-from get_redis import get_redis_db
+from get_quiz import get_questions_and_answers
 
 logger = logging.getLogger('Logger')
 
@@ -96,6 +96,10 @@ def main():
 
 
 if __name__ == "__main__":
-    r = get_redis_db()
+    r = redis.Redis(
+        host=os.getenv('REDIS_END_POINT'),
+        port=os.getenv('REDIS_PORT'),
+        password=os.getenv('REDIS_PASSWORD'),
+    )
     questions_and_answers = get_questions_and_answers()
     main()
